@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2018/09/28 00:48:37.000.543,E:\githubcode\CEF4Delphi\demos\MiniBrowser\MiniBrowser.dproj=E:\githubcode\CEF4Delphi\demos\MiniBrowser\GreenXinBrowser.dproj</Transaction>
+    <Transaction>2018/11/20 23:29:28.000.378,=E:\githubcode\GreenXinBrowser-D\Unit1.pas</Transaction>
+    <Transaction>2018/11/20 23:29:54.000.470,E:\githubcode\GreenXinBrowser-D\Unit1.dfm=E:\githubcode\GreenXinBrowser-D\Ufmchrom.dfm</Transaction>
+    <Transaction>2018/11/20 23:29:54.000.470,E:\githubcode\GreenXinBrowser-D\Unit1.pas=E:\githubcode\GreenXinBrowser-D\Ufmchrom.pas</Transaction>
+  </Transactions>
+</BorlandProject>

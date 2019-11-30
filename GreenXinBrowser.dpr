@@ -1,0 +1,159 @@
+﻿// ************************************************************************
+// ***************************** CEF4Delphi *******************************
+// ************************************************************************
+//
+// CEF4Delphi is based on DCEF3 which uses CEF3 to embed a chromium-based
+// browser in Delphi applications.
+//
+// The original license of DCEF3 still applies to CEF4Delphi.
+//
+// For more information about CEF4Delphi visit :
+//         https://www.briskbard.com/index.php?lang=en&pageid=cef
+//
+//        Copyright ?2018 Salvador D韆z Fau. All rights reserved.
+//
+// ************************************************************************
+// ************ vvvv Original license and comments below vvvv *************
+// ************************************************************************
+(*
+ *                       Delphi Chromium Embedded 3
+ *
+ * Usage allowed under the restrictions of the Lesser GNU General Public License
+ * or alternatively the restrictions of the Mozilla Public License 1.1
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
+ * the specific language governing rights and limitations under the License.
+ *
+ * Unit owner : Henri Gourvest <hgourvest@gmail.com>
+ * Web site   : http://www.progdigy.com
+ * Repository : http://code.google.com/p/delphichromiumembedded/
+ * Group      : http://groups.google.com/group/delphichromiumembedded
+ *
+ * Embarcadero Technologies, Inc is not permitted to use or redistribute
+ * this source code without explicit permission.
+ *
+ *)
+
+
+program GreenXinBrowser;
+
+{$I cef.inc}
+
+uses
+  {$IFDEF DELPHI16_UP}
+  Vcl.Forms,
+  {$ELSE}
+  Forms,
+  Windows,
+  {$ENDIF }
+  Winapi.Windows,
+  uCEFApplication,
+  uCEFTypes,
+  uMiniBrowser in 'uMiniBrowser.pas' {MainForm},
+  uPreferences in 'uPreferences.pas' {PreferencesFrm},
+  uSimpleTextViewer in 'uSimpleTextViewer.pas' {SimpleTextViewerFrm},
+  Ufmchrom in 'Ufmchrom.pas' {fmChrom},
+  Vcl.Themes,
+  Vcl.Styles,
+   uCEFMiscFunctions;
+
+{$R *.res}
+
+{$SetPEFlags IMAGE_FILE_LARGE_ADDRESS_AWARE} //IMAGE_FILE_LARGE_ADDRESS_AWARE = $0020; Winapi.Windows中
+
+
+function CefLibPath: string;
+begin
+{$IFDEF CPUX64}
+  Result := '3.3497.1827\Core64';      // Result := 'CEF_3.3497.1827\Core64';
+{$ELSE}
+  Result := '3.3497.1827';     //Result := 'CEF_3.3497.1827\Core';
+{$ENDIF}
+end;
+
+begin
+  GlobalCEFApp := TCefApplication.Create;
+  GlobalCEFApp.FrameworkDirPath := CefLibPath;
+  GlobalCEFApp.ResourcesDirPath := CefLibPath;
+  GlobalCEFApp.LocalesDirPath   := CefLibPath + '\locales';
+  GlobalCEFApp.Cache            := CefLibPath + '\cache';
+  //GlobalCEFApp.Cookies          := CefLibPath + '\cookies';  //控件升级后没这属性了？
+  GlobalCEFApp.UserDataPath     := CefLibPath + '\User Data';
+ // GlobalCEFApp.AcceptLanguageList:= 'zh-CN';
+  //GlobalCEFApp.LocalesRequired := 'zh-CN';
+ // GlobalCEFApp.Locale          := 'zh-CN';
+
+ // GlobalCEFApp.FlashEnabled    := False;
+  //GlobalCEFApp.AddCustomCommandLine('allow-outdated-plugins');                                                                                               、、
+  GlobalCEFApp.CustomFlashPath:= GetModulePath + CefLibPath + '\PepperFlash\32.0.0.101';   //  //手动屏了控件里，检查falsh Dll的产品名代码
+
+ { function TCefApplication.FindFlashDLL(var aFileName : string) : boolean;
+var
+  TempSearchRec : TSearchRec;
+  TempProductName, TempPath : string;
+begin
+  Result    := False;
+  aFileName := '';
+
+  try
+    if (length(FCustomFlashPath) > 0) then
+      begin
+        TempPath := IncludeTrailingPathDelimiter(FCustomFlashPath);
+
+        if (FindFirst(TempPath + '*.dll', faAnyFile, TempSearchRec) = 0) then
+          begin
+            repeat
+              if (TempSearchRec.Attr <> faDirectory) then// and
+               //  GetStringFileInfo(TempPath + TempSearchRec.Name, 'ProductName', TempProductName) and
+               //  (CompareText(TempProductName, 'Shockwave Flash') = 0) then   }
+
+ {
+  procedure TCefApplication.Internal_OnBeforeCommandLineProcessing(const processType : ustring;
+                                                                 const commandLine : ICefCommandLine);
+var
+  i : integer;
+  TempVersionInfo : TFileVersionInfo;
+  TempFileName : string;
+begin
+  if (commandLine <> nil) and (FProcessType = ptBrowser) and (processType = '') then
+    begin
+      if FindFlashDLL(TempFileName) and
+         GetDLLVersion(TempFileName, TempVersionInfo) then
+        begin
+          if FEnableGPU then commandLine.AppendSwitch('--enable-gpu-plugin');
+
+          commandLine.AppendSwitch('--enable-accelerated-plugins');
+          commandLine.AppendSwitchWithValue('--ppapi-flash-path',    TempFileName);
+          commandLine.AppendSwitchWithValue('--ppapi-flash-version', FileVersionInfoToString(TempVersionInfo));}
+
+
+
+ // GlobalCEFApp.AddCustomCommandLine('ppapi-flash-path', 'E:\bin\PepperFlash\pepflashplayer.dll');
+ // GlobalCEFApp.AddCustomCommandLine('ppapi-flash-version', '20.0.0.228');
+
+  {	command_line->AppendSwitch("no-proxy-server");
+	command_line->AppendSwitch("--enable-npapi");
+	command_line->AppendSwitch("--disable-web-security");
+	command_line->AppendSwitch("allow-outdated-plugins");
+
+	//manifest.jsonÖÐµÄversion
+	command_line->AppendSwitchWithValue("ppapi-flash-version", "20.0.0.228");
+
+	//¼ÓÔØflash²å¼þ
+	command_line->AppendSwitchWithValue("ppapi-flash-path", "PepperFlash\\pepflashplayer.dll");}
+
+  if GlobalCEFApp.StartMainProcess then
+    begin
+      Application.Initialize;
+      {$IFDEF DELPHI11_UP}
+      Application.MainFormOnTaskbar := True;
+      {$ENDIF}
+      Application.CreateForm(TMainForm, MainForm);
+  Application.CreateForm(TPreferencesFrm, PreferencesFrm);
+  Application.CreateForm(TSimpleTextViewerFrm, SimpleTextViewerFrm);
+  Application.Run;
+    end;
+
+  DestroyGlobalCEFApp;
+end.

@@ -1,0 +1,758 @@
+unit Ufmchrom;
+
+interface
+
+uses
+  {$IFDEF DELPHI16_UP}
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics, Vcl.Menus,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, System.Types, Vcl.ComCtrls, Vcl.ClipBrd,
+  System.UITypes, Vcl.AppEvnts, Winapi.ActiveX, Winapi.ShlObj,
+  {$ELSE}
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Menus,
+  Controls, Forms, Dialogs, StdCtrls, ExtCtrls, Types, ComCtrls, ClipBrd, AppEvnts, ActiveX, ShlObj,
+    {$ENDIF}
+  uCEFChromium, uCEFWindowParent,
+  uCEFInterfaces, uCEFApplication, uCEFTypes, uCEFConstants,System.NetEncoding;
+
+type
+  TfmChrom = class(TForm)
+    Chromium1: TChromium;
+    CEFWindowParent1: TCEFWindowParent;
+    NavControlPnl: TPanel;
+    NavButtonPnl: TPanel;
+    BackBtn: TButton;
+    ForwardBtn: TButton;
+    ReloadBtn: TButton;
+    StopBtn: TButton;
+    RemoveTabBtn: TButton;
+    AddTabBtn: TButton;
+    URLEditPnl: TPanel;
+    URLCbx: TComboBox;
+    ConfigPnl: TPanel;
+    ConfigBtn: TButton;
+    GoBtn: TButton;
+    procedure Chromium1AddressChange(Sender: TObject;
+      const browser: ICefBrowser; const frame: ICefFrame; const url: ustring);
+    procedure Chromium1AfterCreated(Sender: TObject;
+      const browser: ICefBrowser);
+    procedure Chromium1BeforeClose(Sender: TObject; const browser: ICefBrowser);
+    procedure Chromium1BeforeContextMenu(Sender: TObject;
+      const browser: ICefBrowser; const frame: ICefFrame;
+      const params: ICefContextMenuParams; const model: ICefMenuModel);
+    procedure Chromium1BeforeDownload(Sender: TObject;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const suggestedName: ustring; const callback: ICefBeforeDownloadCallback);
+    procedure Chromium1BeforePopup(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; const targetUrl, targetFrameName: ustring;
+      targetDisposition: TCefWindowOpenDisposition; userGesture: Boolean;
+      const popupFeatures: TCefPopupFeatures; var windowInfo: TCefWindowInfo;
+      var client: ICefClient; var settings: TCefBrowserSettings;
+      var noJavascriptAccess, Result: Boolean);
+    procedure Chromium1BeforeResourceLoad(Sender: TObject;
+      const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const callback: ICefRequestCallback;
+      out Result: TCefReturnValue);
+    procedure Chromium1Close(Sender: TObject; const browser: ICefBrowser;
+      out Result: Boolean);
+    procedure Chromium1DownloadUpdated(Sender: TObject;
+      const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+      const callback: ICefDownloadItemCallback);
+    procedure Chromium1KeyEvent(Sender: TObject; const browser: ICefBrowser;
+      const event: PCefKeyEvent; osEvent: PMsg; out Result: Boolean);
+    procedure Chromium1LoadEnd(Sender: TObject; const browser: ICefBrowser;
+      const frame: ICefFrame; httpStatusCode: Integer);
+    procedure Chromium1LoadingProgressChange(Sender: TObject;
+      const browser: ICefBrowser; const progress: Double);
+    procedure Chromium1LoadingStateChange(Sender: TObject;
+      const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
+    procedure Chromium1PdfPrintFinished(Sender: TObject; aResultOK: Boolean);
+    procedure Chromium1PrefsAvailable(Sender: TObject; aResultOK: Boolean);
+    procedure Chromium1PreKeyEvent(Sender: TObject; const browser: ICefBrowser;
+      const event: PCefKeyEvent; osEvent: PMsg; out isKeyboardShortcut,
+      Result: Boolean);
+    procedure Chromium1RenderCompMsg(var aMessage: TMessage;
+      var aHandled: Boolean);
+    procedure Chromium1ResolvedHostAvailable(Sender: TObject; result: Integer;
+      const resolvedIps: TStrings);
+    procedure Chromium1ResourceResponse(Sender: TObject;
+      const browser: ICefBrowser; const frame: ICefFrame;
+      const request: ICefRequest; const response: ICefResponse;
+      out Result: Boolean);
+    procedure Chromium1StatusMessage(Sender: TObject;
+      const browser: ICefBrowser; const value: ustring);
+    procedure Chromium1TextResultAvailable(Sender: TObject;
+      const aText: ustring);
+    procedure Chromium1TitleChange(Sender: TObject; const browser: ICefBrowser;
+      const title: ustring);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure BackBtnClick(Sender: TObject);
+    procedure ForwardBtnClick(Sender: TObject);
+    procedure ReloadBtnClick(Sender: TObject);
+    procedure StopBtnClick(Sender: TObject);
+    procedure GoBtnClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+  private
+    { Private declarations }
+  protected
+
+        FCanClose          : boolean;
+    FClosing           : boolean;
+    FClientInitialized : boolean;
+    FPopupFeatures     : TCefPopupFeatures;
+    FResponse : TStringList;
+    FRequest  : TStringList;
+       procedure InspectResponse(const aResponse : ICefResponse);
+       procedure InspectRequest(const aRequest : ICefRequest);
+           procedure BrowserDestroyMsg(var aMessage : TMessage); message CEF_DESTROY;
+   { procedure WMMove(var aMessage : TWMMove); message WM_MOVE;
+    procedure WMMoving(var aMessage : TMessage); message WM_MOVING;
+    procedure WMEnterMenuLoop(var aMessage: TMessage); message WM_ENTERMENULOOP;
+    procedure WMExitMenuLoop(var aMessage: TMessage); message WM_EXITMENULOOP;   }
+  public
+     openurl :String;
+    { Public declarations }
+    function CreateClientHandler(var   windowInfo      : TCefWindowInfo;
+                                        var   client          : ICefClient;
+                                        const targetFrameName : string;
+                                        const popupFeatures   : TCefPopupFeatures;const targetUrl:string) : boolean;
+      procedure ApplyPopupFeatures;
+
+  end;
+
+var
+  fmChrom: TfmChrom;
+
+implementation
+
+{$R *.dfm}
+
+
+uses
+  {$IFDEF DELPHI16_UP}
+  System.Math,
+  {$ELSE}
+  Math,
+  {$ENDIF}uMiniBrowser,uCefStringMultimap,uCEFMiscFunctions;
+
+procedure TfmChrom.ApplyPopupFeatures;
+begin
+
+end;
+
+procedure TfmChrom.BackBtnClick(Sender: TObject);
+begin
+    Chromium1.GoBack;
+end;
+
+procedure TfmChrom.BrowserDestroyMsg(var aMessage: TMessage);
+begin
+//  CEFWindowParent1.Free;
+end;
+
+procedure TfmChrom.Chromium1AddressChange(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame; const url: ustring);
+  var
+  TempPageIndex :integer;
+begin
+
+    URLCbx.Text := url;
+
+end;
+
+procedure TfmChrom.Chromium1AfterCreated(Sender: TObject;
+  const browser: ICefBrowser);
+  var
+  TempPageIndex :integer;
+begin
+
+  begin
+
+       NavControlPnl.Enabled    := True;
+     MainForm.PageControl1.Enabled := True;
+
+        TempPageIndex := MainForm.PageControl1.TabIndex;
+      with MainForm do
+      begin
+        self.CEFWindowParent1.UpdateSize;
+        if GetPageIndex(self, TempPageIndex) then
+        begin    //这里要作比较统一要改成self
+          PostMessage(Handle, CEF_AFTERCREATED, 0, TempPageIndex);  // 发消息，相当于是异步填东西点击
+        end;
+      end;
+
+ {  if Chromium1.IsSameBrowser(browser) then
+    PostMessage(Handle, CEF_AFTERCREATED, 0, 0)
+   else
+    SendMessage(browser.Host.WindowHandle, WM_SETICON, 1, application.Icon.Handle); // Use the same icon in the popup window }
+  end;
+end;
+
+procedure TfmChrom.Chromium1BeforeClose(Sender: TObject;
+  const browser: ICefBrowser);
+var
+  TempPageIndex : integer;
+begin
+    FCanClose := True;
+    self.Parent := nil;
+    PostMessage(Handle, WM_CLOSE, 0, 0);
+       //if FClientInitialized and mainform.HandleAllocated then
+
+  {   TempPageIndex := MainForm.PageControl1.TabIndex;
+  with MainForm do
+  begin
+  if GetPageIndex(self, TempPageIndex) then
+    begin
+      if FClosing then
+        PostMessage(Handle, CEFBROWSER_CHECKTAGGEDTABS, 0, TempPageIndex)
+       else
+        PostMessage(Handle, CEFBROWSER_DESTROYTAB, 0, TempPageIndex);
+    end;
+  end;   }
+
+ { if (Chromium1.BrowserId = 0) then // The main browser is being destroyed
+    begin
+      FCanClose := True;
+      PostMessage(Handle, WM_CLOSE, 0, 0);
+    end;   }
+end;
+
+procedure TfmChrom.Chromium1BeforeContextMenu(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const params: ICefContextMenuParams; const model: ICefMenuModel);
+begin
+ // if not(Chromium1.IsSameBrowser(browser)) then exit;
+  with MainForm do
+  begin
+    model.AddSeparator;
+    model.AddItem(MINIBROWSER_CONTEXTMENU_TAKESNAPSHOT,    'Take snapshot...');
+    model.AddSeparator;
+    model.AddItem(MINIBROWSER_CONTEXTMENU_COPYALLTEXT,     'Copy displayed text to clipboard');
+    model.AddItem(MINIBROWSER_CONTEXTMENU_COPYHTML,        'Copy HTML to clipboard');
+    model.AddItem(MINIBROWSER_CONTEXTMENU_COPYFRAMEIDS,    'Copy HTML frame identifiers to clipboard');
+    model.AddItem(MINIBROWSER_CONTEXTMENU_COPYFRAMENAMES,  'Copy HTML frame names to clipboard');
+    model.AddSeparator;
+    model.AddItem(MINIBROWSER_CONTEXTMENU_SAVEPREFERENCES, 'Save preferences as...');
+    model.AddSeparator;
+    model.AddItem(MINIBROWSER_CONTEXTMENU_JSWRITEDOC,      'Modify HTML document');
+    model.AddItem(MINIBROWSER_CONTEXTMENU_JSPRINTDOC,      'Print using Javascript');
+    model.AddItem(MINIBROWSER_CONTEXTMENU_SHOWRESPONSE,    'Show server headers');
+
+    if DevTools.Visible then
+      model.AddItem(MINIBROWSER_CONTEXTMENU_HIDEDEVTOOLS, 'Hide DevTools')
+     else
+      model.AddItem(MINIBROWSER_CONTEXTMENU_SHOWDEVTOOLS, 'Show DevTools');
+  end;
+end;
+
+function PathToMyDocuments : string;
+var
+  Allocator : IMalloc;
+  Path      : pchar;
+  idList    : PItemIDList;
+begin
+  Result   := '';
+  Path     := nil;
+  idList   := nil;
+
+  try
+    if (SHGetMalloc(Allocator) = S_OK) then
+      begin
+        GetMem(Path, MAX_PATH);
+        if (SHGetSpecialFolderLocation(0, CSIDL_PERSONAL, idList) = S_OK) and
+           SHGetPathFromIDList(idList, Path) then
+          Result := string(Path);
+      end;
+  finally
+    if (Path   <> nil) then FreeMem(Path);
+    if (idList <> nil) then Allocator.Free(idList);
+  end;
+end;
+
+
+procedure TfmChrom.Chromium1BeforeDownload(Sender: TObject;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const suggestedName: ustring; const callback: ICefBeforeDownloadCallback);
+var
+  TempMyDocuments, TempFullPath, TempName : string;
+begin
+   with MainForm do
+  begin
+    if not(self.Chromium1.IsSameBrowser(browser)) or
+       (downloadItem = nil) or
+       not(downloadItem.IsValid) then
+      exit;
+
+    TempMyDocuments := PathToMyDocuments;
+
+    if (length(suggestedName) > 0) then
+      TempName := suggestedName
+     else
+      TempName := 'DownloadedFile';
+
+    if (length(TempMyDocuments) > 0) then
+      TempFullPath := IncludeTrailingPathDelimiter(TempMyDocuments) + TempName
+     else
+      TempFullPath := TempName;
+
+    callback.cont(TempFullPath, False);
+  end;
+end;
+
+procedure TfmChrom.Chromium1BeforePopup(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame; const targetUrl,
+  targetFrameName: ustring; targetDisposition: TCefWindowOpenDisposition;
+  userGesture: Boolean; const popupFeatures: TCefPopupFeatures;
+  var windowInfo: TCefWindowInfo; var client: ICefClient;
+  var settings: TCefBrowserSettings; var noJavascriptAccess, Result: Boolean);
+begin   //如果这个事情什么都不写就会跟 minibrowser一样会弹出所有的窗体 allow all; block
+ // Result := (targetDisposition in [WOD_NEW_FOREGROUND_TAB, WOD_NEW_BACKGROUND_TAB, WOD_NEW_POPUP, WOD_NEW_WINDOW]);
+    //参考popu
+  case targetDisposition of
+    WOD_NEW_FOREGROUND_TAB,
+    WOD_NEW_BACKGROUND_TAB,
+    WOD_NEW_WINDOW :
+    begin
+    // Result := True;  // For simplicity, this demo blocks new tabs and new windows.
+     Result := not (mainform.CreateClientHandler(windowInfo, client, targetFrameName, popupFeatures,targetUrl));
+    end;
+
+    WOD_NEW_POPUP :
+    begin
+     //Result := not(TMainForm(Owner).CreateClientHandler(windowInfo, client, targetFrameName, popupFeatures));
+    end
+
+    else Result := False;
+  end;
+end;
+
+function TfmChrom.CreateClientHandler(var   windowInfo      : TCefWindowInfo;
+                                        var   client          : ICefClient;
+                                        const targetFrameName : string;
+                                        const popupFeatures   : TCefPopupFeatures;const targetUrl:string) : boolean;
+var
+  TempRect : TRect;
+  intbeg,intend :integer;
+  strtemp :string;
+  cururl :string;
+begin
+
+  { intbeg := pos('?',targetUrl);
+   intend := pos('&&',targetUrl);
+   strtemp := copy(targetUrl,intbeg+1,intend- intbeg-1);
+   strtemp :=  stringreplace(strtemp,'key=','',[]);
+   cururl := TNetEncoding.URL.URLDecode(strtemp);
+  // self.Chromium1.OnAddressChange := nil;
+   Chromium1.LoadURL(cururl);  }
+   Result             := True;
+   exit;
+
+
+  {if CEFWindowParent1.HandleAllocated and
+     Chromium1.CreateClientHandler(client, False) then
+    begin
+      Result             := True;
+      FClientInitialized := True;
+      FPopupFeatures     := popupFeatures;
+      TempRect           := CEFWindowParent1.ClientRect;
+
+      if (FPopupFeatures.widthset  <> 0) then TempRect.Right  := max(FPopupFeatures.width,  100);
+      if (FPopupFeatures.heightset <> 0) then TempRect.Bottom := max(FPopupFeatures.height, 100);
+
+      WindowInfoAsChild(windowInfo, CEFWindowParent1.Handle, TempRect, '');
+    end
+   else
+    Result := False; }
+end;
+
+
+procedure TfmChrom.Chromium1BeforeResourceLoad(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const callback: ICefRequestCallback;
+  out Result: TCefReturnValue);
+begin
+with mainform do
+begin
+  Result := RV_CONTINUE;
+
+  if self.Chromium1.IsSameBrowser(browser) and
+     (frame <> nil) and
+     frame.IsMain then
+    InspectRequest(request);
+end;
+end;
+
+
+procedure TfmChrom.Chromium1Close(Sender: TObject; const browser: ICefBrowser;
+  out Result: Boolean);
+  var
+  TempPageIndex :integer;
+begin
+  // TempPageIndex := MainForm.PageControl1.TabIndex;
+ // with mainform do
+ // begin
+  //if GetPageIndex(self, TempPageIndex) then
+      PostMessage(Handle, CEF_DESTROY, 0, 0);
+
+    Result := true;         //modfy by 2018/11/19  Result := False;
+ // end;
+
+  {if (browser <> nil) and (Chromium1.BrowserId = browser.Identifier) then
+    begin
+      PostMessage(Handle, CEF_DESTROY, 0, 0);
+      Result := True;
+    end
+   else
+    Result := False; }
+end;
+
+procedure TfmChrom.Chromium1DownloadUpdated(Sender: TObject;
+  const browser: ICefBrowser; const downloadItem: ICefDownloadItem;
+  const callback: ICefDownloadItemCallback);
+var
+  TempString : string;
+begin
+ // if not(self.Chromium1.IsSameBrowser(browser)) then exit;
+  with mainform do
+  begin
+  if downloadItem.IsComplete then
+    ShowStatusText(downloadItem.FullPath + ' completed')
+   else
+    if downloadItem.IsCanceled then
+      ShowStatusText(downloadItem.FullPath + ' canceled')
+     else
+      if downloadItem.IsInProgress then
+        begin
+          if (downloadItem.PercentComplete >= 0) then
+            TempString := downloadItem.FullPath + ' : ' + inttostr(downloadItem.PercentComplete) + '%'
+           else
+            TempString := downloadItem.FullPath + ' : ' + inttostr(downloadItem.ReceivedBytes) + ' bytes received';
+
+          ShowStatusText(TempString);
+        end;
+  end;
+end;
+
+procedure TfmChrom.Chromium1KeyEvent(Sender: TObject; const browser: ICefBrowser;
+  const event: PCefKeyEvent; osEvent: PMsg; out Result: Boolean);
+var
+  TempMsg : TMsg;
+begin
+  Result := False;
+
+    with mainform do
+  begin
+ // if not(Chromium1.IsSameBrowser(browser)) then exit;
+
+  if (event <> nil) and (osEvent <> nil) then
+    case osEvent.Message of
+      WM_KEYUP :
+        begin
+          TempMsg := osEvent^;
+
+          HandleKeyUp(TempMsg, Result);
+        end;
+
+      WM_KEYDOWN :
+        begin
+          TempMsg := osEvent^;
+
+          HandleKeyDown(TempMsg, Result);
+        end;
+    end;
+  end;
+end;
+
+procedure TfmChrom.Chromium1LoadEnd(Sender: TObject; const browser: ICefBrowser;
+  const frame: ICefFrame; httpStatusCode: Integer);
+begin
+    with mainform do
+  begin
+    if frame.IsMain then
+      StatusBar1.Panels[1].Text := 'main frame loaded : ' + quotedstr(frame.name)
+     else
+      StatusBar1.Panels[1].Text := 'frame loaded : ' + quotedstr(frame.name);
+  end;
+end;
+
+procedure TfmChrom.Chromium1LoadingProgressChange(Sender: TObject;
+  const browser: ICefBrowser; const progress: Double);
+begin
+  with mainform do
+  begin
+    StatusBar1.Panels[0].Text := 'Loading... ' + FloatToStrF(progress * 100, ffFixed, 3, 0) + '%';
+  end;
+end;
+
+procedure TfmChrom.Chromium1LoadingStateChange(Sender: TObject;
+  const browser: ICefBrowser; isLoading, canGoBack, canGoForward: Boolean);
+begin
+  //if not(Chromium1.IsSameBrowser(browser)) or FClosing then exit;
+
+  // This event is executed in a CEF thread and this can cause problems when
+  // you change the 'Enabled' and 'Visible' properties from VCL components.
+  // It's recommended to change the 'Enabled' and 'Visible' properties
+  // in the main application thread and not in a CEF thread.
+  // It's much safer to use PostMessage to send a message to the main form with
+  // all this information and update those properties in the procedure handling
+  // that message.
+  with mainform do
+  begin
+    BackBtn.Enabled    := canGoBack;
+    ForwardBtn.Enabled := canGoForward;
+
+    if isLoading then
+      begin
+        StatusBar1.Panels[0].Text := 'Loading...';
+        ReloadBtn.Enabled         := False;
+        StopBtn.Enabled           := True;
+      end
+     else
+      begin
+        StatusBar1.Panels[0].Text := 'Finished';
+        ReloadBtn.Enabled         := True;
+        StopBtn.Enabled           := False;
+      end;
+  end;
+end;
+
+procedure TfmChrom.Chromium1PdfPrintFinished(Sender: TObject; aResultOK: Boolean);
+begin
+  if aResultOK then
+    showmessage('The PDF file was generated successfully')
+   else
+    showmessage('There was a problem generating the PDF file.');
+end;
+
+procedure TfmChrom.Chromium1PrefsAvailable(Sender: TObject; aResultOK: Boolean);
+begin
+  if aResultOK then
+    showmessage('The preferences file was generated successfully')
+   else
+    showmessage('There was a problem generating the preferences file.');
+end;
+
+procedure TfmChrom.Chromium1PreKeyEvent(Sender: TObject;
+  const browser: ICefBrowser; const event: PCefKeyEvent; osEvent: PMsg;
+  out isKeyboardShortcut, Result: Boolean);
+begin
+  Result := False;
+
+  if Chromium1.IsSameBrowser(browser) and
+     (event <> nil) and
+     (event.kind in [KEYEVENT_KEYDOWN, KEYEVENT_KEYUP]) and
+     (event.windows_key_code = VK_F12) then
+    isKeyboardShortcut := True;
+end;
+
+procedure TfmChrom.Chromium1RenderCompMsg(var aMessage: TMessage;
+  var aHandled: Boolean);
+begin
+   with mainform do
+  begin
+  if not(FClosing) and (aMessage.Msg = WM_MOUSEMOVE) then
+    begin
+      StatusBar1.Panels[2].Text := 'x : ' + inttostr(aMessage.lParam and $FFFF);
+      StatusBar1.Panels[3].Text := 'y : ' + inttostr((aMessage.lParam and $FFFF0000) shr 16);
+    end;
+  end;
+end;
+procedure TfmChrom.Chromium1ResolvedHostAvailable(Sender: TObject;
+  result: Integer; const resolvedIps: TStrings);
+begin
+  if (result = ERR_NONE) then
+    showmessage('Resolved IPs : ' + resolvedIps.CommaText)
+   else
+    showmessage('There was a problem resolving the host.' + CRLF +
+                'Error code : ' + inttostr(result));
+end;
+
+procedure TfmChrom.Chromium1ResourceResponse(Sender: TObject;
+  const browser: ICefBrowser; const frame: ICefFrame;
+  const request: ICefRequest; const response: ICefResponse;
+  out Result: Boolean);
+begin
+  Result := False;
+
+  if Chromium1.IsSameBrowser(browser) and
+     (frame <> nil) and
+     frame.IsMain then
+    InspectResponse(response);
+end;
+
+procedure TfmChrom.Chromium1StatusMessage(Sender: TObject;
+  const browser: ICefBrowser; const value: ustring);
+begin
+     with mainform do
+  begin
+    if self.Chromium1.IsSameBrowser(browser) then
+    begin
+      ShowStatusText(value);
+    end;
+  end;
+end;
+
+procedure TfmChrom.Chromium1TextResultAvailable(Sender: TObject;
+  const aText: ustring);
+begin
+  clipboard.AsText := aText;
+end;
+
+procedure TfmChrom.Chromium1TitleChange(Sender: TObject;
+  const browser: ICefBrowser; const title: ustring);
+var
+  TempPageIndex : integer;
+begin
+     TempPageIndex := MainForm.PageControl1.TabIndex;
+  with MainForm do
+  begin
+    if not(FClosing) and GetPageIndex(Sender, TempPageIndex) then
+      PageControl1.Pages[TempPageIndex].Caption := title;
+    {if not(Chromium1.IsSameBrowser(browser)) then exit;
+
+    if (title <> '') then
+      caption := '绿芯 - ' + title
+     else
+      caption := '绿芯';     }
+   end;
+end;
+
+procedure TfmChrom.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+     Action := caFree;
+end;
+
+procedure TfmChrom.FormCreate(Sender: TObject);
+begin
+  FResponse := TStringList.Create;      //从主窗体移过来的，不知道有没有问题
+  FRequest  := TStringList.Create;
+  //  Chromium1.Options.BackgroundColor := CefColorSetARGB($FF, $FF, $FF, $FF);
+end;
+
+procedure TfmChrom.FormDestroy(Sender: TObject);
+var
+  TempPageIndex :integer;
+begin
+  if CEFWindowParent1 <> nil then
+  begin
+    CEFWindowParent1.Free;
+  end;
+
+  FResponse.Free;
+  FRequest.Free;
+
+
+      begin
+      TempPageIndex := MainForm.PageControl1.TabIndex;
+        with MainForm do
+        begin
+        if GetPageIndex(self, TempPageIndex) then
+          begin
+            if FClosing then
+              PostMessage(Handle, CEFBROWSER_CHECKTAGGEDTABS, 0, TempPageIndex)
+             else
+              PostMessage(Handle, CEFBROWSER_DESTROYTAB, 0, TempPageIndex);
+          end;
+        end;    //CEFBROWSER_DESTROYTAB
+    end;
+
+
+
+end;
+
+procedure TfmChrom.ForwardBtnClick(Sender: TObject);
+begin
+  Chromium1.GoForward;
+end;
+
+procedure TfmChrom.GoBtnClick(Sender: TObject);
+begin
+  Chromium1.LoadURL(URLCbx.Text);
+end;
+
+procedure TfmChrom.ReloadBtnClick(Sender: TObject);
+begin
+  Chromium1.Reload;
+end;
+
+
+procedure TfmChrom.StopBtnClick(Sender: TObject);
+begin
+  Chromium1.StopLoad;
+end;
+
+{procedure TfmChrom.WMEnterMenuLoop(var aMessage: TMessage);
+begin
+    inherited;
+
+ // if (aMessage.wParam = 0) and (GlobalCEFApp <> nil) then GlobalCEFApp.OsmodalLoop := True;
+end;
+
+procedure TfmChrom.WMExitMenuLoop(var aMessage: TMessage);
+begin
+    inherited;
+
+//  if (aMessage.wParam = 0) and (GlobalCEFApp <> nil) then GlobalCEFApp.OsmodalLoop := False;
+end;
+
+procedure TfmChrom.WMMove(var aMessage: TWMMove);
+begin
+    inherited;
+//if (Chromium1 <> nil) then Chromium1.NotifyMoveOrResizeStarted;
+end;
+
+procedure TfmChrom.WMMoving(var aMessage: TMessage);
+begin
+    inherited;
+
+ // if (Chromium1 <> nil) then Chromium1.NotifyMoveOrResizeStarted;
+end;}
+
+procedure TfmChrom.InspectRequest(const aRequest : ICefRequest);
+var
+  TempHeaderMap : ICefStringMultimap;
+  i, j : integer;
+begin
+  if (aRequest <> nil) then
+    begin
+      FRequest.Clear;
+
+      TempHeaderMap := TCefStringMultimapOwn.Create;
+      aRequest.GetHeaderMap(TempHeaderMap);
+
+      i := 0;
+      j := TempHeaderMap.Size;
+
+      while (i < j) do
+        begin
+          FRequest.Add(TempHeaderMap.Key[i] + '=' + TempHeaderMap.Value[i]);
+          inc(i);
+        end;
+    end;
+end;
+
+procedure TfmChrom.InspectResponse(const aResponse : ICefResponse);
+var
+  TempHeaderMap : ICefStringMultimap;
+  i, j : integer;
+begin
+  if (aResponse <> nil) then
+    begin
+      FResponse.Clear;
+
+      TempHeaderMap := TCefStringMultimapOwn.Create;
+      aResponse.GetHeaderMap(TempHeaderMap);
+
+      i := 0;
+      j := TempHeaderMap.Size;
+
+      while (i < j) do
+        begin
+          FResponse.Add(TempHeaderMap.Key[i] + '=' + TempHeaderMap.Value[i]);
+          inc(i);
+        end;
+    end;
+end;
+
+
+end.
